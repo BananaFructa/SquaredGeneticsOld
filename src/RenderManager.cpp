@@ -45,7 +45,7 @@ void RenderManager::RenderLoop() {
         MutexLock.unlock();
     }, 1000);
 
-    Window->setFramerateLimit(60);
+    Window->setFramerateLimit(30);
 
     while (Window->isOpen()) {
 

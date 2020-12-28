@@ -27,6 +27,8 @@ public:
 	AFunction* Activations;
 
 	FFNN(int Layers[], AFunction Activations[], int size);
-	float* Predict(float Input[]);
+	FFNN(FFNN& ffnn);
+	~FFNN();
+	float* Predict(float* Input);
 	void RandomizeByChance(float chance,float amplitude);
 };

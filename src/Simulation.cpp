@@ -35,8 +35,8 @@ void Simulation::UpdateSimulation() {
 	for (int i = Agents.size();i < POPULATION_MINIMUM;++i) {
 		sf::Vector2i Positon;
 		do {
-			Positon.x = rand() % 45;
-			Positon.y = rand() % 45;
+			Positon.x = rand() % (MapSize) + (-MapSize/2);
+			Positon.y = rand() % (MapSize)+(-MapSize / 2);
 		} while (Map[Positon.x + MapSize / 2][Positon.y + MapSize / 2].Agent != nullptr);
 		AddAgent(GenerateColor(), Positon);
 	}
@@ -81,12 +81,13 @@ void Simulation::UpdateSimulation() {
 		DestroyAgent(AgentsToDestroy[i]);
 	}
 	MutexRenderUpdateLoop.unlock();
+
 }
 
 bool Simulation::SetAgentPosition(Agent* agent, sf::Vector2i Position) {
 	int x = Position.x + MapSize / 2;
 	int y = Position.y + MapSize / 2;
-	bool MovmentAllowed = -1 < x && x < MapSize && -1 < y < MapSize && Map[x][y].Agent == nullptr;
+	bool MovmentAllowed = (-1 < x && x < MapSize && -1 < y && y < MapSize ? Map[x][y].Agent == nullptr : false);
 	if (MovmentAllowed) {
 		Map[agent->Position.x + MapSize/2][agent->Position.y + MapSize/2].Agent = nullptr;
 		agent->SetPosition(Position);
@@ -116,6 +117,9 @@ void Simulation::AddAgent(sf::Color Color, sf::Vector2i Position) {
 }
 
 bool Simulation::AddAgentFromCopy(Agent* agent) {
+
+	if (agent->Energy < BIRTH_COST) return false;
+
 	int x = agent->Position.x + MapSize / 2;
 	int y = agent->Position.y + MapSize / 2;
 
@@ -127,18 +131,24 @@ bool Simulation::AddAgentFromCopy(Agent* agent) {
 	if (!Left && !Right && !Up && !Down) return false;
 
 	Agent* Copy = new Agent(*agent);
-
-	if (Left) {
-		Copy->SetPosition(agent->Position + sf::Vector2i(-1, 0));
-	}
-	else if (Right) {
-		Copy->SetPosition(agent->Position + sf::Vector2i(1, 0));
-	}
-	else if (Up) {
-		Copy->SetPosition(agent->Position + sf::Vector2i(0, -1));
-	}
-	else if (Down) {
-		Copy->SetPosition(agent->Position + sf::Vector2i(0, 1));
+	
+	for (;;) {
+		if (Left && rand() < RAND_MAX/2) {
+			Copy->SetPosition(agent->Position + sf::Vector2i(-1, 0));
+			break;
+		}
+		else if (Right && rand() < RAND_MAX / 2) {
+			Copy->SetPosition(agent->Position + sf::Vector2i(1, 0));
+			break;
+		}
+		else if (Up && rand() < RAND_MAX / 2) {
+			Copy->SetPosition(agent->Position + sf::Vector2i(0, -1));
+			break;
+		}
+		else if (Down && rand() < RAND_MAX / 2) {
+			Copy->SetPosition(agent->Position + sf::Vector2i(0, 1));
+			break;
+		}
 	}
 
 	if (rand() < RAND_MAX * CHANCE_OF_MUTATED_COPY) {
@@ -148,13 +158,23 @@ bool Simulation::AddAgentFromCopy(Agent* agent) {
 		}
 	}
 
+	Copy->Energy = AGENT_STARTING_ENERGY;
+
 	Map[Copy->Position.x + MapSize / 2][Copy->Position.y + MapSize / 2].Agent = Copy;
 	Agents.push_back(Copy);
 	return true;
 }
 
 void Simulation::DestroyAgent(Agent* agent) {
-	Agents.erase(std::find(Agents.begin(), Agents.end(), agent));
+	int idx = -1;
+	for (int i = 0;i < Agents.size();++i) {
+		if (agent == Agents[i]) {
+			idx = i;
+			break;
+		}
+	}
+	Map[agent->Position.x + MapSize / 2][agent->Position.y + MapSize / 2].Agent = nullptr;
+	Agents.erase(Agents.begin() + idx);
 	delete agent;
 }
 
@@ -173,16 +193,19 @@ sf::Color Simulation::GenerateColor() {
 }
 
 TileData Simulation::GetTileDataAt(int x, int y) {
+	int a = x;int b = y;
 	x += MapSize / 2;
 	y += MapSize / 2;
 	TileData tileData;
-	if (Map[x][y].Agent != nullptr) {
+	if ((-1 < x && x < MapSize && -1 < y && y < MapSize ? Map[x][y].Agent != nullptr : false)) {
 		tileData.R = Map[x][y].Agent->Color.r / 255.0f;
 		tileData.G = Map[x][y].Agent->Color.g / 255.0f;
 		tileData.B = Map[x][y].Agent->Color.b / 255.0f;
 		tileData.Signal = Map[x][y].Agent->CurrentSignalState;
 		tileData.AgentAttacks = Map[x][y].Agent->Attacks;
 		tileData.AgentIsAttacked = Map[x][y].Agent->IsGettingAttacked;
+		tileData.Energy = Map[x][y].Energy;
+		tileData.EnergyCapacity = Map[x][y].MaxEnergy;
 	}
 	else {
 		tileData.R = -1;
@@ -191,9 +214,9 @@ TileData Simulation::GetTileDataAt(int x, int y) {
 		tileData.Signal = 0;
 		tileData.AgentAttacks = 0;
 		tileData.AgentIsAttacked = 0;
+		tileData.Energy = 0;
+		tileData.EnergyCapacity = 0;
 	}
-	tileData.Energy = Map[x][y].Energy;
-	tileData.EnergyCapacity = Map[x][y].MaxEnergy;
 	return tileData;
 }
 

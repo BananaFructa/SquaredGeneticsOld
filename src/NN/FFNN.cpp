@@ -46,8 +46,60 @@ FFNN::FFNN (int Layers[], AFunction Activations[], int size) {
 	}
 }
 
-float* FFNN::Predict(float Input[]) {
-	Layers[0] = Input; // Sets the input layer
+FFNN::FFNN(FFNN& ffnn) {
+	this->LayerCount = ffnn.LayerCount;
+	this->LayerSizes = new int[LayerCount];
+	for (int i = 0;i < LayerCount;++i) {
+		this->LayerSizes[i] = ffnn.LayerSizes[i];
+	}
+	this->Layers = new float* [LayerCount];
+	for (int i = 0;i < LayerCount;++i) {
+		this->Layers[i] = new float[LayerSizes[i]];
+		for (int j = 0;j < LayerSizes[i];++j) {
+			this->Layers[i][j] = 0;
+		}
+	}
+	this->Biases = new float* [LayerCount - 1];
+	for (int i = 1;i < LayerCount;++i) {
+		this->Biases[i-1] = new float[LayerSizes[i]];
+		for (int j = 0;j < LayerSizes[i];++j) {
+			this->Biases[i-1][j] = ffnn.Biases[i-1][j];
+		}
+	}
+	this->Weights = new float** [LayerCount - 1];
+	for (int i = 1;i < LayerCount;++i) {
+		this->Weights[i - 1] = new float* [LayerSizes[i - 1]];
+		for (int j = 0;j < LayerSizes[i - 1];++j) {
+			this->Weights[i - 1][j] = new float[LayerSizes[i]];
+			for (int l = 0;l < LayerSizes[i];++l) {
+				this->Weights[i - 1][j][l] = ffnn.Weights[i - 1][j][l];
+			}
+		}
+	}
+	this->Activations = new AFunction[LayerCount - 1];
+	for (int i = 0;i < LayerCount-1;++i) {
+		this->Activations[i] = ffnn.Activations[i];
+	}
+}
+
+FFNN::~FFNN() {
+	for (int i = 1;i < LayerCount; ++i) {
+		delete[] Biases[i - 1];
+		for (int j = 0;j < LayerSizes[i - 1]; ++j) {
+			delete[] Weights[i - 1][j];
+		}
+		delete[] Weights[i - 1];
+	}
+	delete Biases;
+	delete Weights;
+	for (int i = 0;i < LayerCount;++i) delete[] Layers[i];
+	delete Layers;
+	delete[] LayerSizes;
+	delete[] Activations;
+}
+
+float* FFNN::Predict(float* Input) {
+	for (int i = 0;i < LayerSizes[0];++i) Layers[0][i] = Input[i];
 	for (int i = 1;i < LayerCount;++i) {
 		for (int j = 0;j < LayerSizes[i];++j) {
 			float Sum = 0;

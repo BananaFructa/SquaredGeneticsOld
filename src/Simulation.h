@@ -38,22 +38,22 @@ struct TileComponent {
 
 #define WALKING_COST 2
 #define PASSIVE_COST 1
-#define BIRTH_COST 30
+#define BIRTH_COST 50
 #define AGENT_MINIMUM_ENERGY 0
 #define AGENT_MAXIMUM_ENERGY 100
 #define AGENT_STARTING_ENERGY 20
 
-#define ENERGY_ABSORPTION_RATE 10
+#define ENERGY_ABSORPTION_RATE 2
 
 #define COLOR_CHANGE_VALUE 1
 #define COLOR_CHANCE_CHANCE 0.1f
 
-#define POPULATION_MINIMUM 60
+#define POPULATION_MINIMUM 200
 
 class Simulation {
 public:
 
-	const int MapSize = 100;
+	const int MapSize = 300;
 
 	std::vector<Agent*> Agents;
 	std::mutex MutexRenderUpdateLoop;
