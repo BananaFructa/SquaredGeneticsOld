@@ -58,18 +58,6 @@ public:
 	std::vector<Agent*> Agents;
 	std::mutex MutexRenderUpdateLoop;
 
-	// Byte structure
-	//
-	//    12 bits  12 bits  10 bits  2 bits  1 bit  8 bits  8 bits  8 bits
-	//    |_____|  |_____|  |_____|  |____|  |___|  |____|  |____|  |____|
-	//    MaxEngy  Energy   Growth   Attack  Signal    R      G       B
-	//
-	// 00 - No attack
-	// 01 - Attacking
-	// 10 - Being Attacked
-	// 0 - No Signal
-	// 1 - On Signal
-
 	TileComponent** Map;
 
 	void Init();

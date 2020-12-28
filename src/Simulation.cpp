@@ -219,7 +219,7 @@ float* Simulation::CompileAgentInput(Agent* agent) {
 	}
 
 	Input[index++] = agent->CurrentSignalState;
-
+	  
 	Input[index++] = (agent->Energy / AGENT_MAXIMUM_ENERGY) * 2 - 1;
 
 	TileData UnderTile = GetTileDataAt(agent->Position.x, agent->Position.y);
