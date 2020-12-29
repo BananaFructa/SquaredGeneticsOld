@@ -101,14 +101,14 @@ FFNN::~FFNN() {
 float* FFNN::Predict(float* Input) {
 	for (int i = 0;i < LayerSizes[0];++i) Layers[0][i] = Input[i];
 	for (int i = 1;i < LayerCount;++i) {
-		for (int j = 0;j < LayerSizes[i];++j) {
+		concurrency::parallel_for(size_t(0), (size_t)LayerSizes[i], [&](size_t j) {
 			float Sum = 0;
 			for (int l = 0;l < LayerSizes[i - 1];++l) {
-				Sum += Layers[i - 1][l] * Weights[i-1][l][j];
+				Sum += Layers[i - 1][l] * Weights[i - 1][l][j];
 			}
 			Sum += Biases[i - 1][j];
 			Layers[i][j] = UseActivation(Sum, Activations[i - 1]);
-		}
+	    });
 	}
 	return Layers[LayerCount - 1];
 }

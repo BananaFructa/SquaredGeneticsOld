@@ -27,33 +27,37 @@ struct TileComponent {
 
 #define MAX_12BIT 4095
 #define MAX_10BIT 1023
-#define MAX_ENERGY_IN_GENERATED_TILE 1000
+#define MAX_ENERGY_IN_GENERATED_TILE 100
 
-#define INITIAL_MUTATION_CHANCE 0.1f
-#define CHANCE_OF_MUTATED_COPY 0.1f
+#define INITIAL_MUTATION_CHANCE 0.3f
+#define INITIAL_MUTATION_AMPLITUDE 1.0f
+#define CHANCE_OF_MUTATED_COPY 0.3f
 #define MUTATION_CHANCE_ON_COPY 0.2f
-#define MUTATION_APLITUDE_ON_COPY 0.12f
+#define MUTATION_APLITUDE_ON_COPY 0.5f
 
 #define TILE_GROWTH 1LL
 
 #define WALKING_COST 2
-#define PASSIVE_COST 1
-#define BIRTH_COST 50
+#define BIRTH_COST 40
 #define AGENT_MINIMUM_ENERGY 0
-#define AGENT_MAXIMUM_ENERGY 100
+#define AGENT_MAXIMUM_ENERGY 300
 #define AGENT_STARTING_ENERGY 20
+#define AGENT_PASSIVE_COST 2
 
-#define ENERGY_ABSORPTION_RATE 2
+#define ENERGY_ABSORPTION_RATE 3
 
-#define COLOR_CHANGE_VALUE 1
 #define COLOR_CHANCE_CHANCE 0.1f
 
-#define POPULATION_MINIMUM 200
+#define POPULATION_MINIMUM 70
+
+#define FOOD_RARITY 4
+
+#define USE_AUTOMATIC_SELECTION false // Experimental !!!!
 
 class Simulation {
 public:
 
-	const int MapSize = 300;
+	const int MapSize = 100;
 
 	std::vector<Agent*> Agents;
 	std::mutex MutexRenderUpdateLoop;

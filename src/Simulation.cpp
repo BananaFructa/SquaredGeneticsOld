@@ -15,7 +15,7 @@ void Simulation::Init() {
 
 	for (int y = 0;y < MapSize;++y) {
 		for (int x = 0;x < MapSize;++x) {
-			short v = (std::pow(((Noise.GetNoise((float)x, (float)y) + 1)/2),6) * MAX_ENERGY_IN_GENERATED_TILE);
+			short v = (std::pow(((Noise.GetNoise((float)x, (float)y) + 1)/2),FOOD_RARITY) * MAX_ENERGY_IN_GENERATED_TILE);
 			Map[x][y].Energy = v;
 			Map[x][y].MaxEnergy = v;
 		}
@@ -23,6 +23,9 @@ void Simulation::Init() {
 }
 
 void Simulation::UpdateSimulation() {
+
+	static FFNN* BestNetwork;
+	static int BestScore = 0;
 
 	// Makes the energy in tiles regrow
 	for (int i = 0;i < MapSize;++i) {
@@ -32,25 +35,48 @@ void Simulation::UpdateSimulation() {
 		}
 	}
 
-	for (int i = Agents.size();i < POPULATION_MINIMUM;++i) {
-		sf::Vector2i Positon;
-		do {
-			Positon.x = rand() % (MapSize) + (-MapSize/2);
-			Positon.y = rand() % (MapSize)+(-MapSize / 2);
-		} while (Map[Positon.x + MapSize / 2][Positon.y + MapSize / 2].Agent != nullptr);
-		AddAgent(GenerateColor(), Positon);
+	if ((Agents.size() == 0 && USE_AUTOMATIC_SELECTION && BestScore == 0) || !USE_AUTOMATIC_SELECTION) {
+		for (int i = Agents.size();i < POPULATION_MINIMUM;++i) {
+			sf::Vector2i Positon;
+			do {
+				Positon.x = rand() % (MapSize)+(-MapSize / 2);
+				Positon.y = rand() % (MapSize)+(-MapSize / 2);
+			} while (Map[Positon.x + MapSize / 2][Positon.y + MapSize / 2].Agent != nullptr);
+			AddAgent(GenerateColor(), Positon);
+		}
+	}
+	else if (Agents.size() == 0 && USE_AUTOMATIC_SELECTION) {
+		BestScore = 0;
+		bool AddedFirst = false;
+		for (int i = Agents.size();i < POPULATION_MINIMUM;++i) {
+			sf::Vector2i Positon;
+			do {
+				Positon.x = rand() % (MapSize)+(-MapSize / 2);
+				Positon.y = rand() % (MapSize)+(-MapSize / 2);
+			} while (Map[Positon.x + MapSize / 2][Positon.y + MapSize / 2].Agent != nullptr);
+			AddAgent(GenerateColor(), Positon);
+			delete Agents[Agents.size() - 1]->NNController;
+			Agents[Agents.size() - 1]->NNController = new FFNN(*BestNetwork);
+			if (AddedFirst) {
+				Agents[Agents.size() - 1]->NNController->RandomizeByChance(INITIAL_MUTATION_CHANCE, INITIAL_MUTATION_AMPLITUDE);
+			}
+			AddedFirst = true;
+		}
 	}
 
 	std::vector<Agent*> AgentsToDestroy;
 
-	// Updating the agents
 	MutexRenderUpdateLoop.lock();
+	// Updating the agents
 	int AgentCount = Agents.size();
 	for (int i = 0; i < AgentCount;i++) {
 		float* Input = CompileAgentInput(Agents[i]);
 		float* Out = Agents[i]->Update(Input);
 
-		Agents[i]->Energy--;
+		for (int i = AGENT_OUTPUT_SIZE - 1;i <= AGENT_OUTPUT_SIZE - AGENT_MEMORY_SIZE;--i) Agents[i]->Memory[i - (AGENT_OUTPUT_SIZE - AGENT_MEMORY_SIZE)];
+
+		Agents[i]->Energy -= AGENT_PASSIVE_COST;
+		Agents[i]->CurrentSignalState = Out[SIGNAL_NEURON];
 
 		float Left = Out[LEFT_NEURON];
 		float Right = Out[RIGHT_NEURON];
@@ -58,6 +84,12 @@ void Simulation::UpdateSimulation() {
 		float Down = Out[DOWN_NEURON];
 		float Eat = Out[EAT_NEURON];
 		float Reproduce = Out[REPRODUCE_NEURON];
+
+		if (Eat > 0) {
+
+			AgentConsumesEnergy(Agents[i]);
+
+		}
 
 		if (Left >= Right && Left >= Up && Left >= Down && Left > 0)
 			Agents[i]->Energy -= WALKING_COST * SetAgentPosition(Agents[i], Agents[i]->Position + sf::Vector2i(-1, 0));
@@ -67,17 +99,22 @@ void Simulation::UpdateSimulation() {
 			Agents[i]->Energy -= WALKING_COST * SetAgentPosition(Agents[i], Agents[i]->Position + sf::Vector2i(0, -1));
 		else if (Down > 0)
 			Agents[i]->Energy -= WALKING_COST * SetAgentPosition(Agents[i], Agents[i]->Position + sf::Vector2i(0, 1));
-		else if (Reproduce > 0) {
-			Agents[i]->Energy -= BIRTH_COST * AddAgentFromCopy(Agents[i]);
-		}
-		else if (Eat > 0) {
-			AgentConsumesEnergy(Agents[i]);
+
+		if (Reproduce > 0) {
+			bool Reproduced = AddAgentFromCopy(Agents[i]);
+			Agents[i]->ReproductionCounts += Reproduced;
+			Agents[i]->Energy -= BIRTH_COST * Reproduced;
 		}
 		if (Agents[i]->Energy < AGENT_MINIMUM_ENERGY || Agents[i]->Energy > AGENT_MAXIMUM_ENERGY + 20) AgentsToDestroy.push_back(Agents[i]);
 	}
 
 	int AgentDestroyCount = AgentsToDestroy.size();
 	for (int i = 0;i < AgentDestroyCount;++i) {
+		if (USE_AUTOMATIC_SELECTION && (AgentsToDestroy[i]->ReproductionCounts > BestScore)) {
+			if (BestNetwork != nullptr) delete BestNetwork;
+			BestNetwork = new FFNN(*AgentsToDestroy[i]->NNController);
+			BestScore = AgentsToDestroy[i]->ReproductionCounts;
+		}
 		DestroyAgent(AgentsToDestroy[i]);
 	}
 	MutexRenderUpdateLoop.unlock();
@@ -109,7 +146,7 @@ void Simulation::AgentConsumesEnergy(Agent* agent) {
 void Simulation::AddAgent(sf::Color Color, sf::Vector2i Position) {
 	Agent* agent = new Agent(Color, Position);
 	agent->Energy = AGENT_STARTING_ENERGY;
-    agent->NNController->RandomizeByChance(INITIAL_MUTATION_CHANCE, 0.2f);
+    agent->NNController->RandomizeByChance(INITIAL_MUTATION_CHANCE, INITIAL_MUTATION_AMPLITUDE);
 	int x = agent->Position.x + MapSize / 2;
 	int y = agent->Position.y + MapSize / 2;
 	Map[x][y].Agent = agent;
@@ -153,7 +190,7 @@ bool Simulation::AddAgentFromCopy(Agent* agent) {
 
 	if (rand() < RAND_MAX * CHANCE_OF_MUTATED_COPY) {
 		Copy->NNController->RandomizeByChance(MUTATION_CHANCE_ON_COPY, MUTATION_APLITUDE_ON_COPY);
-		if (rand() < RAND_MAX * COLOR_CHANGE_VALUE) {
+		if (rand() < RAND_MAX * COLOR_CHANCE_CHANCE) {
 			Copy->Color = sf::Color(GenerateColor() * Copy->Color);
 		}
 	}
@@ -189,7 +226,7 @@ void Simulation::SetTileToAgentData(Agent* agent) {
 }
 
 sf::Color Simulation::GenerateColor() {
-	return sf::Color::Color(rand() % 200 + 55, rand() % 200 + 55, rand() % 200 + 55);
+	return sf::Color::Color(rand() % 200 + 100, rand() % 200 + 100, rand() % 200 + 100);
 }
 
 TileData Simulation::GetTileDataAt(int x, int y) {
@@ -229,8 +266,8 @@ float* Simulation::CompileAgentInput(Agent* agent) {
 
 	static float Input[AGENT_INPUT_SIZE];
 
-	for (int i = agent->Position.x - 4;i <= agent->Position.x + 4;++i) {
-		for (int j = agent->Position.y - 4;j <= agent->Position.y + 4;++j) {
+	for (int i = agent->Position.x - AGENT_VIEW_AREA;i <= agent->Position.x + AGENT_VIEW_AREA;++i) {
+		for (int j = agent->Position.y - AGENT_VIEW_AREA;j <= agent->Position.y - AGENT_VIEW_AREA;++j) {
 			TileData Data = GetTileDataAt(i,j);
 			Input[index++] = Data.R; //R
 			Input[index++] = Data.G; //G
@@ -241,8 +278,6 @@ float* Simulation::CompileAgentInput(Agent* agent) {
 		}
 	}
 
-	Input[index++] = agent->CurrentSignalState;
-	  
 	Input[index++] = (agent->Energy / AGENT_MAXIMUM_ENERGY) * 2 - 1;
 
 	TileData UnderTile = GetTileDataAt(agent->Position.x, agent->Position.y);

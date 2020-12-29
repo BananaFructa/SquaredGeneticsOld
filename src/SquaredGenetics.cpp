@@ -23,7 +23,7 @@ int main() {
 
     UpdateTimer.SetInterval([]() {
         MainSimulation.UpdateSimulation();
-    },100);
+    },1);
 
     RenderManager::SetWindow(&Window);
     RenderManager::SetSimulation(&MainSimulation);
