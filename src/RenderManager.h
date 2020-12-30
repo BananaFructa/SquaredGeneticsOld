@@ -17,6 +17,8 @@ private:
 	static void CameraChangedUnit();
 	static void FOVChanged();
 	static int AreaInFrame;
+	static bool SignalMapMode;
+	static bool AttackMapMode;
 
 
 public:

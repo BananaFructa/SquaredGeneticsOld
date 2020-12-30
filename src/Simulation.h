@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <cmath>
 #include "Agent.h"
+#include "Random.hpp"
 
 struct TileData {
 	short Energy;
@@ -25,39 +26,38 @@ struct TileComponent {
 	Agent* Agent = nullptr;
 };
 
-#define MAX_12BIT 4095
-#define MAX_10BIT 1023
+#define TILE_GROWTH 1LL
+#define FOOD_RARITY 1
+#define ENERGY_ABSORPTION_RATE 3
 #define MAX_ENERGY_IN_GENERATED_TILE 100
 
-#define INITIAL_MUTATION_CHANCE 0.3f
-#define INITIAL_MUTATION_AMPLITUDE 1.0f
-#define CHANCE_OF_MUTATED_COPY 0.3f
-#define MUTATION_CHANCE_ON_COPY 0.2f
-#define MUTATION_APLITUDE_ON_COPY 0.5f
+#define POPULATION_MINIMUM 200
 
-#define TILE_GROWTH 1LL
+#define INITIAL_MUTATION_CHANCE 0.1f
+#define CHANCE_OF_MUTATED_COPY 0.2f
+#define MUTATION_CHANCE_ON_COPY 0.2f
+#define MUTATION_APLITUDE 0.2f
+#define COLOR_CHANCE_CHANCE 0.1f
 
 #define WALKING_COST 2
 #define BIRTH_COST 40
 #define AGENT_MINIMUM_ENERGY 0
-#define AGENT_MAXIMUM_ENERGY 300
+#define AGENT_MAXIMUM_ENERGY 100
 #define AGENT_STARTING_ENERGY 20
 #define AGENT_PASSIVE_COST 2
 
-#define ENERGY_ABSORPTION_RATE 3
+#define ATTACK_COST 10
+#define COST_WHEN_ATTACKED 30
 
-#define COLOR_CHANCE_CHANCE 0.1f
-
-#define POPULATION_MINIMUM 70
-
-#define FOOD_RARITY 4
+#define ALLOW_OVERCROUD_COST true
+#define OVER_2_NEIGHBOURS_COST 5
 
 #define USE_AUTOMATIC_SELECTION false // Experimental !!!!
 
 class Simulation {
 public:
 
-	const int MapSize = 100;
+	const int MapSize = 500;
 
 	std::vector<Agent*> Agents;
 	std::mutex MutexRenderUpdateLoop;
@@ -72,6 +72,9 @@ public:
 	void SetTileToAgentData(Agent* agent);
 	bool SetAgentPosition(Agent* agent, sf::Vector2i Position);
 	void AgentConsumesEnergy(Agent* agent);
+	bool AttackAtPosition(sf::Vector2i Position);
+	void PenaliseForPossibleNeighbourLimit(Agent* agent);
+	bool IsPositionValid(sf::Vector2i Position);
 	float* CompileAgentInput(Agent* agent);
 	sf::Color GenerateColor();
 	int GetWorldArea();

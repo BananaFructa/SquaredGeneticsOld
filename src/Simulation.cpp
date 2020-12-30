@@ -45,6 +45,7 @@ void Simulation::UpdateSimulation() {
 			AddAgent(GenerateColor(), Positon);
 		}
 	}
+
 	else if (Agents.size() == 0 && USE_AUTOMATIC_SELECTION) {
 		BestScore = 0;
 		bool AddedFirst = false;
@@ -58,7 +59,7 @@ void Simulation::UpdateSimulation() {
 			delete Agents[Agents.size() - 1]->NNController;
 			Agents[Agents.size() - 1]->NNController = new FFNN(*BestNetwork);
 			if (AddedFirst) {
-				Agents[Agents.size() - 1]->NNController->RandomizeByChance(INITIAL_MUTATION_CHANCE, INITIAL_MUTATION_AMPLITUDE);
+				Agents[Agents.size() - 1]->NNController->RandomizeByChance(INITIAL_MUTATION_CHANCE, MUTATION_APLITUDE);
 			}
 			AddedFirst = true;
 		}
@@ -69,42 +70,87 @@ void Simulation::UpdateSimulation() {
 	MutexRenderUpdateLoop.lock();
 	// Updating the agents
 	int AgentCount = Agents.size();
+
+	for (int i = 0;i < AgentCount;++i) {
+		Agents[i]->AttackStateOfCurrentUpdate = false;
+	}
+
 	for (int i = 0; i < AgentCount;i++) {
+
+		if (ALLOW_OVERCROUD_COST) PenaliseForPossibleNeighbourLimit(Agents[i]);
+
+		// First check if agent should be dead
+		if (Agents[i]->Energy < AGENT_MINIMUM_ENERGY || Agents[i]->Energy > AGENT_MAXIMUM_ENERGY + 20) {
+			AgentsToDestroy.push_back(Agents[i]);
+			continue;
+		}
+
+		Agents[i]->IsAttacked = Agents[i]->AttackStateOfCurrentUpdate;
+
 		float* Input = CompileAgentInput(Agents[i]);
 		float* Out = Agents[i]->Update(Input);
 
-		for (int i = AGENT_OUTPUT_SIZE - 1;i <= AGENT_OUTPUT_SIZE - AGENT_MEMORY_SIZE;--i) Agents[i]->Memory[i - (AGENT_OUTPUT_SIZE - AGENT_MEMORY_SIZE)];
+		for (int j = AGENT_OUTPUT_SIZE - AGENT_MEMORY_SIZE;j <= AGENT_OUTPUT_SIZE - 1;++j)
+			Agents[i]->Memory[j - (AGENT_OUTPUT_SIZE - AGENT_MEMORY_SIZE)] = Out[j];
 
 		Agents[i]->Energy -= AGENT_PASSIVE_COST;
-		Agents[i]->CurrentSignalState = Out[SIGNAL_NEURON];
+		Agents[i]->CurrentSignalState = Out[SIGNAL_NEURON] > 0;
 
-		float Left = Out[LEFT_NEURON];
-		float Right = Out[RIGHT_NEURON];
-		float Up = Out[UP_NEURON];
-		float Down = Out[DOWN_NEURON];
+		float MoveH = Out[HORIZONTAL_MOVMENT_NEURON];
+		float MoveV = Out[VERTICAL_MOVMENT_NEURON];
 		float Eat = Out[EAT_NEURON];
 		float Reproduce = Out[REPRODUCE_NEURON];
+		float AttackX = Out[ATTACK_HORIZONTAL];
+		float AttackY = Out[ATTACK_VERTICAL];
+
+		int x = Agents[i]->Position.x + MapSize / 2;
+		int y = Agents[i]->Position.y + MapSize / 2;
+
 
 		if (Eat > 0) {
-
 			AgentConsumesEnergy(Agents[i]);
-
 		}
 
-		if (Left >= Right && Left >= Up && Left >= Down && Left > 0)
+		bool AttackSucces = false;
+
+		if (AttackX < -0.5f && std::abs(AttackX) > std::abs(AttackY)) {
+			AttackSucces = AttackAtPosition(Agents[i]->Position + sf::Vector2i(-1, 0));
+			Agents[i]->Energy -= ATTACK_COST * AttackSucces;
+		}
+		else if (AttackX > 0.5f && std::abs(AttackX) > std::abs(AttackY)) {
+			AttackSucces = AttackAtPosition(Agents[i]->Position + sf::Vector2i(1, 0));
+			Agents[i]->Energy -= ATTACK_COST * AttackSucces;
+		}
+		else if (AttackY < -0.5f) {
+			AttackSucces = AttackAtPosition(Agents[i]->Position + sf::Vector2i(0, -1));
+			Agents[i]->Energy -= ATTACK_COST * AttackSucces;
+		}
+		else if (AttackY > 0.5f) {
+			AttackSucces = AttackAtPosition(Agents[i]->Position + sf::Vector2i(0, 1));
+			Agents[i]->Energy -= ATTACK_COST * AttackSucces;
+		}
+
+		Agents[i]->Attacks = AttackSucces;
+
+		if (MoveH < -0.5f && std::abs(MoveH) > std::abs(MoveV)) {
 			Agents[i]->Energy -= WALKING_COST * SetAgentPosition(Agents[i], Agents[i]->Position + sf::Vector2i(-1, 0));
-		else if (Right >= Up && Right >= Down && Right > 0)
+		}
+		else if (MoveH > 0.5f && std::abs(MoveH) > std::abs(MoveV)) {
 			Agents[i]->Energy -= WALKING_COST * SetAgentPosition(Agents[i], Agents[i]->Position + sf::Vector2i(1, 0));
-		else if (Up >= Down && Up > 0)
+		}
+		else if (MoveV < -0.5f) {
 			Agents[i]->Energy -= WALKING_COST * SetAgentPosition(Agents[i], Agents[i]->Position + sf::Vector2i(0, -1));
-		else if (Down > 0)
+		}
+		else if (MoveV > 0.5f) {
 			Agents[i]->Energy -= WALKING_COST * SetAgentPosition(Agents[i], Agents[i]->Position + sf::Vector2i(0, 1));
+		}
 
 		if (Reproduce > 0) {
 			bool Reproduced = AddAgentFromCopy(Agents[i]);
 			Agents[i]->ReproductionCounts += Reproduced;
 			Agents[i]->Energy -= BIRTH_COST * Reproduced;
 		}
+		// Second check if the agent should be dead
 		if (Agents[i]->Energy < AGENT_MINIMUM_ENERGY || Agents[i]->Energy > AGENT_MAXIMUM_ENERGY + 20) AgentsToDestroy.push_back(Agents[i]);
 	}
 
@@ -133,6 +179,18 @@ bool Simulation::SetAgentPosition(Agent* agent, sf::Vector2i Position) {
 	return MovmentAllowed;
 }
 
+bool Simulation::AttackAtPosition(sf::Vector2i Position) {
+	int x = Position.x + MapSize / 2;
+	int y = Position.y + MapSize / 2;
+
+	if (x < 0 || x >= MapSize || y < 0 || y >= MapSize) return false;
+	if (Map[x][y].Agent == nullptr) return false;
+
+	Map[x][y].Agent->IsAttacked = true;
+	Map[x][y].Agent->Energy -= COST_WHEN_ATTACKED;
+	return true;
+}
+
 void Simulation::AgentConsumesEnergy(Agent* agent) {
 	int x = agent->Position.x + MapSize / 2;
 	int y = agent->Position.y + MapSize / 2;
@@ -146,11 +204,31 @@ void Simulation::AgentConsumesEnergy(Agent* agent) {
 void Simulation::AddAgent(sf::Color Color, sf::Vector2i Position) {
 	Agent* agent = new Agent(Color, Position);
 	agent->Energy = AGENT_STARTING_ENERGY;
-    agent->NNController->RandomizeByChance(INITIAL_MUTATION_CHANCE, INITIAL_MUTATION_AMPLITUDE);
+    agent->NNController->RandomizeByChance(INITIAL_MUTATION_CHANCE, MUTATION_APLITUDE);
 	int x = agent->Position.x + MapSize / 2;
 	int y = agent->Position.y + MapSize / 2;
 	Map[x][y].Agent = agent;
 	Agents.push_back(agent);
+}
+
+void Simulation::PenaliseForPossibleNeighbourLimit(Agent* agent) {
+	sf::Vector2i pos1 = agent->Position + sf::Vector2i(-1, 0);
+	sf::Vector2i pos2 = agent->Position + sf::Vector2i(1, 0);
+	sf::Vector2i pos3 = agent->Position + sf::Vector2i(0, -1);
+	sf::Vector2i pos4 = agent->Position + sf::Vector2i(0, 1);
+
+	int NeighborCount = 0;
+
+	if (IsPositionValid(pos1))  NeighborCount += Map[pos1.x][pos1.y].Agent != nullptr;
+	if (IsPositionValid(pos2))  NeighborCount += Map[pos2.x][pos2.y].Agent != nullptr;
+	if (IsPositionValid(pos3))  NeighborCount += Map[pos3.x][pos3.y].Agent != nullptr;
+	if (IsPositionValid(pos4))  NeighborCount += Map[pos4.x][pos4.y].Agent != nullptr;
+
+	if (NeighborCount > 2) agent->Energy -= OVER_2_NEIGHBOURS_COST * (NeighborCount - 2);
+}
+
+bool Simulation::IsPositionValid(sf::Vector2i Position) {
+	return Position.x > -1 && Position.x < MapSize&& Position.y > -1 && Position.y < MapSize;
 }
 
 bool Simulation::AddAgentFromCopy(Agent* agent) {
@@ -189,9 +267,9 @@ bool Simulation::AddAgentFromCopy(Agent* agent) {
 	}
 
 	if (rand() < RAND_MAX * CHANCE_OF_MUTATED_COPY) {
-		Copy->NNController->RandomizeByChance(MUTATION_CHANCE_ON_COPY, MUTATION_APLITUDE_ON_COPY);
+		Copy->NNController->RandomizeByChance(MUTATION_CHANCE_ON_COPY, MUTATION_APLITUDE);
 		if (rand() < RAND_MAX * COLOR_CHANCE_CHANCE) {
-			Copy->Color = sf::Color(GenerateColor() * Copy->Color);
+			Copy->Color = sf::Color(GenerateColor());
 		}
 	}
 
@@ -240,7 +318,7 @@ TileData Simulation::GetTileDataAt(int x, int y) {
 		tileData.B = Map[x][y].Agent->Color.b / 255.0f;
 		tileData.Signal = Map[x][y].Agent->CurrentSignalState;
 		tileData.AgentAttacks = Map[x][y].Agent->Attacks;
-		tileData.AgentIsAttacked = Map[x][y].Agent->IsGettingAttacked;
+		tileData.AgentIsAttacked = Map[x][y].Agent->IsAttacked;
 		tileData.Energy = Map[x][y].Energy;
 		tileData.EnergyCapacity = Map[x][y].MaxEnergy;
 	}

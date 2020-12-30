@@ -17,13 +17,13 @@ Timer UpdateTimer;
 
 int main() {
 
-    srand(std::chrono::system_clock::now().time_since_epoch().count());
+    srand(456);
 
     MainSimulation.Init();
 
     UpdateTimer.SetInterval([]() {
         MainSimulation.UpdateSimulation();
-    },1);
+    },0);
 
     RenderManager::SetWindow(&Window);
     RenderManager::SetSimulation(&MainSimulation);

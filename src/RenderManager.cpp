@@ -11,6 +11,8 @@ Simulation* RenderManager::SimulationToRender;
 bool RenderManager::IsGridDisplayed = true;
 int RenderManager::XUnitsInFrame;
 int RenderManager::YUnitsInFrame;
+bool RenderManager::SignalMapMode;
+bool RenderManager::AttackMapMode;
 
 sf::VertexArray RenderManager::FoodMapArray;
 
@@ -50,16 +52,16 @@ void RenderManager::RenderLoop() {
     while (Window->isOpen()) {
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-            CameraPosition.y -= 0.35f;
+            CameraPosition.y -= 2.0f;
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-            CameraPosition.x -= 0.35f;
+            CameraPosition.x -= 2.0f;
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-            CameraPosition.y += 0.35f;
+            CameraPosition.y += 2.0f;
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-            CameraPosition.x += 0.35f;
+            CameraPosition.x += 2.0f;
         }
 
         if ((int)LastCameraPosition.x != (int)CameraPosition.x || (int)LastCameraPosition.y != (int)CameraPosition.y) {
@@ -85,7 +87,27 @@ void RenderManager::RenderLoop() {
         SimulationToRender->MutexRenderUpdateLoop.lock();
         int AgentCount = SimulationToRender->Agents.size();
         for (int i = 0;i < AgentCount;++i) {
-            Window->draw(SimulationToRender->Agents[i]->Shape);
+            if (!SignalMapMode && !AttackMapMode) {
+                Window->draw(SimulationToRender->Agents[i]->Shape);
+            }
+            else if (SignalMapMode){
+                if (SimulationToRender->Agents[i]->CurrentSignalState) {
+                    sf::RectangleShape rect(sf::Vector2f(1.0f, 1.0f));
+                    rect.setFillColor(sf::Color::Color(255, 255, 0));
+                    rect.setPosition((sf::Vector2f)SimulationToRender->Agents[i]->Position);
+                    Window->draw(rect);
+                }
+            }
+            else if (AttackMapMode) {
+                sf::RectangleShape rect(sf::Vector2f(1.0f, 1.0f));
+                rect.setFillColor(sf::Color::Color(
+                    255 * SimulationToRender->Agents[i]->Attacks,
+                    0, 255 * SimulationToRender->Agents[i]->IsAttacked,
+                    255 * (SimulationToRender->Agents[i]->Attacks || SimulationToRender->Agents[i]->IsAttacked
+                )));
+                rect.setPosition((sf::Vector2f)SimulationToRender->Agents[i]->Position);
+                Window->draw(rect);
+            }
         }
         SimulationToRender->MutexRenderUpdateLoop.unlock();
 
@@ -109,6 +131,11 @@ void RenderManager::RunEvent(sf::Event Event) {
         if (Event.mouseWheel.delta > 0) FieldOfView++;
         if (Event.mouseWheel.delta < 0) FieldOfView--;
         FOVChanged();
+    }
+
+    if (Event.type == sf::Event::KeyPressed) {
+        if (Event.key.code == sf::Keyboard::P) SignalMapMode = !SignalMapMode;
+        if (Event.key.code == sf::Keyboard::O) AttackMapMode = !AttackMapMode;
     }
 }
 
