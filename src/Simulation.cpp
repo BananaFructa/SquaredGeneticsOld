@@ -170,10 +170,31 @@ void Simulation::UpdateSimulation() {
 bool Simulation::SetAgentPosition(Agent* agent, sf::Vector2i Position) {
 	int x = Position.x + MapSize / 2;
 	int y = Position.y + MapSize / 2;
-	bool MovmentAllowed = (-1 < x && x < MapSize && -1 < y && y < MapSize ? Map[x][y].Agent == nullptr : false);
+	bool PositionOnMap = -1 < x && x < MapSize && -1 < y && y < MapSize;
+	bool MovmentAllowed = (PositionOnMap ? Map[x][y].Agent == nullptr : false);
+	if (!PositionOnMap) {
+
+		if (x < 0) {
+			x = MapSize - 1;
+		}
+		else if (x >= MapSize) {
+			x = 0;
+		}
+		else if (y < 0) {
+			y = MapSize - 1;
+		}
+		else if (y >= MapSize) {
+			y = 0;
+		}
+
+		if (Map[x][y].Agent == nullptr) {
+			MovmentAllowed = true;
+		}
+
+	}
 	if (MovmentAllowed) {
 		Map[agent->Position.x + MapSize/2][agent->Position.y + MapSize/2].Agent = nullptr;
-		agent->SetPosition(Position);
+		agent->SetPosition(sf::Vector2i(x-MapSize/2,y-MapSize/2));
 		Map[x][y].Agent = agent;
 	}
 	return MovmentAllowed;
@@ -204,7 +225,7 @@ void Simulation::AgentConsumesEnergy(Agent* agent) {
 void Simulation::AddAgent(sf::Color Color, sf::Vector2i Position) {
 	Agent* agent = new Agent(Color, Position);
 	agent->Energy = AGENT_STARTING_ENERGY;
-    agent->NNController->RandomizeByChance(INITIAL_MUTATION_CHANCE, MUTATION_APLITUDE);
+    agent->NNController->RandomizeByChance(INITIAL_MUTATION_CHANCE, INITIAL_MUTATION_APLITUDE);
 	int x = agent->Position.x + MapSize / 2;
 	int y = agent->Position.y + MapSize / 2;
 	Map[x][y].Agent = agent;

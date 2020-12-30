@@ -21,27 +21,25 @@ float UseActivation(float x, AFunction Af) {
 	return 0;
 }
 
-FFNN::FFNN (int Layers[], AFunction Activations[], int size) {
+FFNN::FFNN(int Layers[], AFunction Activations[], int size) {
 	this->LayerCount = size;
 	this->LayerSizes = new int[size];
 	for (int i = 0;i < size;++i) this->LayerSizes[i] = Layers[i];
-	this->Biases = new float* [size-1];
+	this->Biases = new float* [size - 1];
 	this->Layers = new float* [size];
-	this->Weights = new float** [size-1];
-	this->Activations = new AFunction[size-1];
+	this->Weights = new float** [size - 1];
+	this->Activations = new AFunction[size - 1];
 	for (int i = 0;i < size - 1;++i) this->Activations[i] = Activations[i];
 	for (int i = 0;i < size; ++i) {
 		this->Layers[i] = new float[Layers[i]];
 	}
 	for (int i = 1;i < size; ++i) {
-		Biases[i-1] = new float[Layers[i]];
-		for (int l = 0;l < Layers[i];++l) Biases[i-1][l] = 0;
-		if (i > 0) {
-			Weights[i-1] = new float* [Layers[i-1]];
-			for (int j = 0;j < Layers[i - 1]; ++j) {
-				Weights[i - 1][j] = new float[Layers[i]];
-				for (int l = 0;l < Layers[i];++l) Weights[i - 1][j][l] = 0;
-			}
+		Biases[i - 1] = new float[Layers[i]];
+		for (int l = 0;l < Layers[i];++l) Biases[i - 1][l] = 0;
+		Weights[i - 1] = new float* [Layers[i - 1]];
+		for (int j = 0;j < Layers[i - 1]; ++j) {
+			Weights[i - 1][j] = new float[Layers[i]];
+			for (int l = 0;l < Layers[i];++l) Weights[i - 1][j][l] = 0;
 		}
 	}
 }
@@ -120,12 +118,10 @@ void FFNN::RandomizeByChance(float c, float amplitude) {
 				Biases[i - 1][l] += Random::RandomFloat() * amplitude;
 			}
 		}
-		if (i > 0) {
-			for (int j = 0;j < LayerSizes[i - 1]; ++j) {
-				for (int l = 0;l < LayerSizes[i];++l) {
-					if (rand() < RAND_MAX * c) {
-						Weights[i - 1][j][l] += Random::RandomFloat() * amplitude;
-					}
+		for (int j = 0;j < LayerSizes[i - 1]; ++j) {
+			for (int l = 0;l < LayerSizes[i];++l) {
+				if (rand() < RAND_MAX * c) {
+					Weights[i - 1][j][l] += Random::RandomFloat() * amplitude;
 				}
 			}
 		}
