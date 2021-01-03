@@ -26,39 +26,44 @@ struct TileComponent {
 	Agent* Agent = nullptr;
 };
 
-#define TILE_GROWTH 1LL
-#define FOOD_RARITY 2
-#define ENERGY_ABSORPTION_RATE 3
-#define MAX_ENERGY_IN_GENERATED_TILE 130
+namespace Constants {
 
-#define POPULATION_MINIMUM 10
+	extern long long TILE_GROWTH;
+	extern int FOOD_RARITY;
+	extern int ENERGY_ABSORPTION_RATE;
+	extern int MAX_ENERGY_IN_GENERATED_TILE;
 
-#define INITIAL_MUTATION_APLITUDE 0.5f
-#define INITIAL_MUTATION_CHANCE 0.4f
-#define CHANCE_OF_MUTATED_COPY 0.2f
-#define MUTATION_APLITUDE 0.05f
-#define MUTATION_CHANCE_ON_COPY 0.2f
-#define COLOR_CHANCE_CHANCE 0.1f
+	extern int POPULATION_MINIMUM;
 
-#define WALKING_COST 2
-#define BIRTH_COST 50
-#define AGENT_MINIMUM_ENERGY 0
-#define AGENT_MAXIMUM_ENERGY 100
-#define AGENT_STARTING_ENERGY 20
-#define AGENT_PASSIVE_COST 2
+	extern float INITIAL_MUTATION_APLITUDE;
+	extern float INITIAL_MUTATION_CHANCE;
+	extern float CHANCE_OF_MUTATED_COPY;
+	extern float MUTATION_APLITUDE;
+	extern float MUTATION_CHANCE_ON_COPY;
+	extern float COLOR_CHANCE_CHANCE;
 
-#define ATTACK_COST 10
-#define COST_WHEN_ATTACKED 30
+	extern int WALKING_COST;
+	extern int BIRTH_COST;
+	extern int AGENT_MINIMUM_ENERGY;
+	extern int AGENT_MAXIMUM_ENERGY;
+	extern int AGENT_STARTING_ENERGY;
+	extern int AGENT_PASSIVE_COST;
 
-#define ALLOW_OVERCROUD_COST false
-#define OVER_2_NEIGHBOURS_COST 5
+	extern int ATTACK_COST;
+	extern int COST_WHEN_ATTACKED;
 
-#define USE_AUTOMATIC_SELECTION false // Experimental !!!!
+	extern bool ALLOW_OVERCROUD_COST;
+	extern int OVER_2_NEIGHBOURS_COST;
+
+	extern bool USE_AUTOMATIC_SELECTION; // Experimental !!!!
+
+}
 
 class Simulation {
 public:
 
-	const int MapSize = 40;
+	const int MapSize = 200;
+	const int MapSizeHalf = MapSize / 2;
 
 	std::vector<Agent*> Agents;
 	std::mutex MutexRenderUpdateLoop;
@@ -66,6 +71,7 @@ public:
 	TileComponent** Map;
 
 	void Init();
+	void GenerateFoodMap(int FoodRarity, int MaxEnergy);
 	void UpdateSimulation();
 	void AddAgent(sf::Color Color, sf::Vector2i Position);
 	bool AddAgentFromCopy(Agent* agent);

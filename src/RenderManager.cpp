@@ -162,7 +162,7 @@ void RenderManager::UpdateFoodMapColors() {
     int index = 0;
     for (int i = 0;i < SimulationToRender->MapSize;++i) {
         for (int j = 0;j < SimulationToRender->MapSize;++j) {
-            float factor = (float)((SimulationToRender->Map[i][j].Energy) / (float)MAX_ENERGY_IN_GENERATED_TILE);
+            float factor = (float)((SimulationToRender->Map[i][j].Energy) / (float)Constants::MAX_ENERGY_IN_GENERATED_TILE);
             sf::Color Color = sf::Color::Color(13 * factor, 140 * factor, 5 * factor);
             float x = i - SimulationToRender->MapSize / 2;
             float y = j - SimulationToRender->MapSize / 2;
