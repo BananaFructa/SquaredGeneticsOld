@@ -30,7 +30,7 @@ namespace Constants {
 	bool ALLOW_OVERCROUD_COST = false;
 	int OVER_2_NEIGHBOURS_COST = 5;
 
-	bool USE_AUTOMATIC_SELECTION = false; // Experimental !!!!
+	bool USE_AUTOMATIC_SELECTION = false;
 
 }
 
