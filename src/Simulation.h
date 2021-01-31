@@ -15,9 +15,9 @@ struct TileData {
 	bool AgentIsAttacked;
 	bool AgentAttacks;
 	bool Signal;
-	float R;
-	float G;
-	float B;
+	int R;
+	int G;
+	int B;
 };
 
 struct TileComponent {
@@ -62,7 +62,7 @@ namespace Constants {
 class Simulation {
 public:
 
-	const int MapSize = 200;
+	const int MapSize = 400;
 	const int MapSizeHalf = MapSize / 2;
 
 	std::vector<Agent*> Agents;

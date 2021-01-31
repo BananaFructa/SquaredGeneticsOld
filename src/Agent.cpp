@@ -6,7 +6,7 @@ Agent::Agent(sf::Color Color, sf::Vector2i InitialPosition) {
 	this->Shape = sf::RectangleShape(sf::Vector2f(0.9f, 0.9f));
 	this->Shape.setPosition((sf::Vector2f)Position + sf::Vector2f(0.05f, 0.05f));
 	this->Shape.setFillColor(this->Color);
-	int NetworkArhitecture[] = { AGENT_INPUT_SIZE,100,50,AGENT_OUTPUT_SIZE };
+	int NetworkArhitecture[] = { AGENT_INPUT_SIZE,150,45,AGENT_OUTPUT_SIZE };
 	AFunction NetworkActivations[] = { AFunctions::LeakyReLU,AFunctions::LeakyReLU, AFunctions::Tanh };
 
 	NNController = new FFNN(

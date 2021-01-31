@@ -14,7 +14,6 @@ private:
 	static sf::Vector2f LastCameraPosition;
 	static int XUnitsInFrame;
 	static int YUnitsInFrame;
-	static void CameraChangedUnit();
 	static void FOVChanged();
 	static int AreaInFrame;
 	static bool SignalMapMode;
@@ -29,6 +28,7 @@ public:
 	static Simulation* SimulationToRender;
 
 	static sf::VertexArray FoodMapArray;
+	static sf::VertexArray AgentMapArray;
 
 	static bool IsGridDisplayed;
 

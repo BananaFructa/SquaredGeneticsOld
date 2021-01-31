@@ -4,18 +4,18 @@
 namespace Constants {
 
 	long long TILE_GROWTH = 1LL;
-	int FOOD_RARITY = 4;
+	int FOOD_RARITY = 2;
 	int ENERGY_ABSORPTION_RATE = 3;
 	int MAX_ENERGY_IN_GENERATED_TILE = 200;
 
-	int POPULATION_MINIMUM = 50;
+	int POPULATION_MINIMUM = 100;
 
-	float INITIAL_MUTATION_APLITUDE = 0.5f;
-	float INITIAL_MUTATION_CHANCE = 0.3f;
-	float CHANCE_OF_MUTATED_COPY = 0.33f;
-	float MUTATION_APLITUDE = 0.05;
-	float MUTATION_CHANCE_ON_COPY = 0.05f;
-	float COLOR_CHANCE_CHANCE = 0.1f;
+	float INITIAL_MUTATION_APLITUDE = 1.0f;
+	float INITIAL_MUTATION_CHANCE = 0.1f;
+	float CHANCE_OF_MUTATED_COPY = 1.0f;
+	float MUTATION_APLITUDE = 0.001;
+	float MUTATION_CHANCE_ON_COPY = 0.01f;
+	float COLOR_CHANCE_CHANCE = 0.01f;
 
 	int WALKING_COST = 5;
 	int BIRTH_COST = 50;
@@ -48,7 +48,7 @@ void Simulation::Init() {
 void Simulation::GenerateFoodMap(int FoodRarity, int MaxEnergy) {
 
 	FastNoiseLite Noise;
-	Noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2S);
+	Noise.SetNoiseType(FastNoiseLite::NoiseType_ValueCubic);
 
 	for (int y = 0;y < MapSize;++y) {
 		for (int x = 0;x < MapSize;++x) {
@@ -371,9 +371,9 @@ TileData Simulation::GetTileDataAt(int x, int y) {
 	x = (MapSize - 1) * (x < 0) + x * !OutsideMap;
 	y = (MapSize - 1) * (y < 0) + y * !OutsideMap;
 	if (Map[x][y].Agent != nullptr) {
-		tileData.R = Map[x][y].Agent->Color.r / 255.0f;
-		tileData.G = Map[x][y].Agent->Color.g / 255.0f;
-		tileData.B = Map[x][y].Agent->Color.b / 255.0f;
+		tileData.R = Map[x][y].Agent->Color.r;
+		tileData.G = Map[x][y].Agent->Color.g;
+		tileData.B = Map[x][y].Agent->Color.b;
 		tileData.Signal = Map[x][y].Agent->CurrentSignalState;
 		tileData.AgentAttacks = Map[x][y].Agent->Attacks;
 		tileData.AgentIsAttacked = Map[x][y].Agent->IsAttacked;
@@ -405,9 +405,10 @@ float* Simulation::CompileAgentInput(Agent* agent) {
 	for (int i = agent->Position.x - AGENT_VIEW_AREA;i <= agent->Position.x + AGENT_VIEW_AREA;++i) {
 		for (int j = agent->Position.y - AGENT_VIEW_AREA;j <= agent->Position.y - AGENT_VIEW_AREA;++j) {
 			TileData Data = GetTileDataAt(i,j);
-			Input[index++] = Data.R; //R
-			Input[index++] = Data.G; //G
-			Input[index++] = Data.B; //B
+			bool SameColor = Data.R == agent->Color.r && Data.G == agent->Color.g && Data.B == agent->Color.b;
+			Input[index++] = (Data.R / 255.0f) * (!SameColor); //R
+			Input[index++] = (Data.G / 255.0f) * (!SameColor); //G
+			Input[index++] = (Data.B / 255.0f) * (!SameColor); //B
 			Input[index++] = 1 * Data.Signal + 0 * !Data.Signal; //S
 			Input[index++] = 1 * Data.AgentAttacks + -1 * !Data.AgentAttacks;
 			Input[index++] = 1 * Data.AgentIsAttacked + -1 * !Data.AgentIsAttacked;

@@ -1,3 +1,4 @@
+#include <thread>
 #include "RenderManager.h"
 #include "RenderUtils.hpp"
 
@@ -24,10 +25,6 @@ void RenderManager::SetSimulation(Simulation* Simulation) {
     RenderManager::SimulationToRender = Simulation;
 }
 
-void RenderManager::CameraChangedUnit() {
-
-}
-
 void RenderManager::FOVChanged() {
     XUnitsInFrame = XUnitsCount(Window,FieldOfView);
     YUnitsInFrame = YUnitsCount(Window, FieldOfView);
@@ -47,6 +44,10 @@ void RenderManager::RenderLoop() {
         MutexLock.unlock();
     }, 1000);
 
+    std::thread([=]() {
+
+    }).detach();
+
     Window->setFramerateLimit(30);
 
     while (Window->isOpen()) {
@@ -62,10 +63,6 @@ void RenderManager::RenderLoop() {
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
             CameraPosition.x += 2.0f;
-        }
-
-        if ((int)LastCameraPosition.x != (int)CameraPosition.x || (int)LastCameraPosition.y != (int)CameraPosition.y) {
-            CameraChangedUnit();
         }
 
         LastCameraPosition = CameraPosition;
