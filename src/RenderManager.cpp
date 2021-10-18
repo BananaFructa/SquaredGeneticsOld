@@ -44,10 +44,6 @@ void RenderManager::RenderLoop() {
         MutexLock.unlock();
     }, 1000);
 
-    std::thread([=]() {
-
-    }).detach();
-
     Window->setFramerateLimit(30);
 
     while (Window->isOpen()) {
@@ -115,7 +111,6 @@ void RenderManager::RenderLoop() {
         if (IsGridDisplayed)
             DrawGrid(Window, FieldOfView);
 
-
         Window->display();
     }
 }
@@ -144,8 +139,8 @@ void RenderManager::GenerateFoodMapMesh() {
     int xV = SimulationToRender->MapSize / 2;
     int yV = SimulationToRender->MapSize / 2;
 
-    for (int x = -xV;x < xV;++x) {
-        for (int y = -yV;y < yV;++y) {
+    for (int x = -xV; x < xV; ++x) {
+        for (int y = -yV; y < yV; ++y) {
             FoodMapArray[index++] = sf::Vector2f(x, y);
             FoodMapArray[index++] = sf::Vector2f(x+1, y);
             FoodMapArray[index++] = sf::Vector2f(x+1, y+1);
@@ -157,8 +152,8 @@ void RenderManager::GenerateFoodMapMesh() {
 void RenderManager::UpdateFoodMapColors() {
 
     int index = 0;
-    for (int i = 0;i < SimulationToRender->MapSize;++i) {
-        for (int j = 0;j < SimulationToRender->MapSize;++j) {
+    for (int i = 0; i < SimulationToRender->MapSize; ++i) {
+        for (int j = 0; j < SimulationToRender->MapSize; ++j) {
             float factor = (float)((SimulationToRender->Map[i][j].Energy) / (float)Constants::MAX_ENERGY_IN_GENERATED_TILE);
             sf::Color Color = sf::Color::Color(13 * factor, 140 * factor, 5 * factor);
             float x = i - SimulationToRender->MapSize / 2;
